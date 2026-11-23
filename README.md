@@ -41,7 +41,9 @@ Built for creators, agencies, and developers who don't want to pay $20–$300/mo
 ## Features
 
 - **🎬 YouTube In, Vertical Out**: Hand it any YouTube URL — get back N viral-ready 9:16 mp4s
-- **🔀 Two Modes — API (fast) or Local (offline)**: Default `--mode api` uses MuAPI for download/transcription/cropping; `--mode local` runs entirely on your machine with `yt-dlp`, `faster-whisper`, and `ffmpeg`/`opencv`, and lets you pick OpenAI or Gemini for highlight ranking
+- **🎣 Always Starts With Hook**: Every short starts directly on the hook at 0:00 (zero preamble, intro fluff, or dead air). The pipeline snaps the start timestamp to the exact millisecond the hook sentence begins speaking in the speech transcript.
+- **🔀 Two Modes — API (fast) or Local (offline)**: Default `--mode local` runs with `yt-dlp`, ElevenLabs Scribe ASR, Gemini 4 Hydrogen (video understanding with direct YouTube URL ingestion), and `ffmpeg`; `--mode api` uses MuAPI.
+- **💬 Custom Focus Directives**: Pass `-p "Extract fight sequence"` or `--prompt "Debate rebuttals"` to instruct the LLM to search for specific moments.
 - **🤖 Virality-Aware Highlight Selection**: Clips ranked on hooks, emotional peaks, opinion bombs, revelation moments, conflict, quotable lines, story peaks, and practical value — not just generic "interesting"
 - **📈 Score + Hook + Reason for Every Clip**: Each highlight comes with a viral score, an opening hook line, and a one-sentence explanation of why it works
 - **🎤 Whisper Transcription, Your Choice**: Cloud (`/openai-whisper` via MuAPI) or local (`faster-whisper`, CPU or CUDA) — same downstream output shape
@@ -186,6 +188,7 @@ xargs -a urls.txt -I{} python main.py "{}"
 | Flag | Default | Notes |
 |------|---------|-------|
 | `--mode` | `local` | `local` (yt-dlp + ElevenLabs ASR + Gemini 4 Hydrogen + ffmpeg) or `api` (MuAPI) |
+| `-p`, `--prompt` | `None` | Custom directive/focus for highlight extraction (e.g. `-p "Extract fight sequence"`) |
 | `--num-clips` | `3` | How many shorts to render |
 | `--target-duration` | `30` | Target duration per short in seconds (e.g. `30` for punchy 20-35s shorts) |
 | `--aspect-ratio` | `9:16` | Any ratio; `9:16` for TikTok/Reels/Shorts, `1:1` for square |

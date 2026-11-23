@@ -29,6 +29,7 @@ def _run_local(
     language: Optional[str],
     analysis_format: str = "360",
     target_duration: int = 30,
+    user_prompt: Optional[str] = None,
 ) -> Dict:
     from .local.clipper import crop_highlights_local
     from .local.downloader import download_youtube_local
@@ -59,6 +60,7 @@ def _run_local(
         llm_fn=call_local_llm,
         video_path=virality_video_target,
         target_duration=target_duration,
+        user_prompt=user_prompt,
     )
     all_highlights: List[Dict] = highlights_result.get("highlights", [])
     if not all_highlights:
@@ -91,6 +93,7 @@ def _run_api(
     aspect_ratio: str,
     download_format: str,
     language: Optional[str],
+    user_prompt: Optional[str] = None,
 ) -> Dict:
     source_url = download_youtube(youtube_url, fmt=download_format, use_muapi=True)
 
@@ -100,7 +103,7 @@ def _run_api(
             "Whisper produced no segments. The video may have no detectable speech."
         )
 
-    highlights_result = get_highlights(transcript, num_clips=num_clips, llm_fn=call_muapi_llm)
+    highlights_result = get_highlights(transcript, num_clips=num_clips, llm_fn=call_muapi_llm, user_prompt=user_prompt)
     all_highlights: List[Dict] = highlights_result.get("highlights", [])
     if not all_highlights:
         raise RuntimeError("Highlight generator returned zero clips.")
@@ -128,6 +131,7 @@ def generate_shorts(
     mode: Optional[str] = None,
     analysis_format: str = "360",
     target_duration: int = 30,
+    user_prompt: Optional[str] = None,
 ) -> Dict:
     """Run the full pipeline and return a structured result.
 
@@ -139,6 +143,7 @@ def generate_shorts(
         language: ISO-639-1 code (optional).
         mode: "local" (default: yt-dlp + ElevenLabs ASR + Gemini 4 Hydrogen + ffmpeg)
             or "api" (MuAPI). If omitted, automatically detects based on configured keys.
+        user_prompt: custom focus instruction (e.g. 'Extract fight sequence').
 
     Returns:
         {
@@ -171,8 +176,9 @@ def generate_shorts(
             language,
             analysis_format=analysis_format,
             target_duration=target_duration,
+            user_prompt=user_prompt,
         )
     if mode == "api":
         require_api_key()
-        return _run_api(youtube_url, num_clips, aspect_ratio, download_format, language)
+        return _run_api(youtube_url, num_clips, aspect_ratio, download_format, language, user_prompt=user_prompt)
     raise ValueError(f"Unknown mode: {mode!r}. Use 'local' or 'api'.")
