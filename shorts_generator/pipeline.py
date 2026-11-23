@@ -28,15 +28,17 @@ def _run_local(
     download_format: str,
     language: Optional[str],
     analysis_format: str = "360",
+    target_duration: int = 30,
 ) -> Dict:
     from .local.clipper import crop_highlights_local
     from .local.downloader import download_youtube_local
     from .local.llm import call_local_llm
     from .local.transcriber import transcribe_local
 
-    # Stage 1: Fast virality check & ASR using low-res preview file (e.g. 360p)
-    # This prevents uploading massive multi-hundred-MB files to Gemini API.
-    print(f"[pipeline/local] fetching low-res preview ({analysis_format}p) for fast transcription and virality check...", flush=True)
+    # Stage 1: Fast virality check & ASR
+    # For YouTube URLs, Gemini video understanding can ingest the YouTube URL directly via Interactions API!
+    # A lightweight preview (e.g. 360p) is used for ElevenLabs audio extraction & ASR.
+    print(f"[pipeline/local] fetching low-res preview ({analysis_format}p) for fast transcription...", flush=True)
     analysis_path = download_youtube_local(youtube_url, fmt=analysis_format)
 
     transcript = transcribe_local(analysis_path, language=language)
@@ -45,7 +47,19 @@ def _run_local(
         duration = transcript.get("duration", 0.0) if transcript else 0.0
         transcript = {"duration": max(duration, 30.0), "segments": [{"start": 0.0, "end": max(duration, 30.0), "text": "(visual content)"}]}
 
-    highlights_result = get_highlights(transcript, num_clips=num_clips, llm_fn=call_local_llm, video_path=analysis_path)
+    # If youtube_url is an online URL, pass it directly for Gemini video understanding; otherwise pass local file path
+    virality_video_target = (
+        youtube_url
+        if (youtube_url.startswith("http://") or youtube_url.startswith("https://"))
+        else analysis_path
+    )
+    highlights_result = get_highlights(
+        transcript,
+        num_clips=num_clips,
+        llm_fn=call_local_llm,
+        video_path=virality_video_target,
+        target_duration=target_duration,
+    )
     all_highlights: List[Dict] = highlights_result.get("highlights", [])
     if not all_highlights:
         raise RuntimeError("Highlight generator returned zero clips.")
@@ -113,6 +127,7 @@ def generate_shorts(
     language: Optional[str] = None,
     mode: Optional[str] = None,
     analysis_format: str = "360",
+    target_duration: int = 30,
 ) -> Dict:
     """Run the full pipeline and return a structured result.
 
@@ -155,6 +170,7 @@ def generate_shorts(
             download_format,
             language,
             analysis_format=analysis_format,
+            target_duration=target_duration,
         )
     if mode == "api":
         require_api_key()

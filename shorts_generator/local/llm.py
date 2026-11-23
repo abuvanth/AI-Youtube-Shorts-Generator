@@ -48,6 +48,24 @@ def call_gemini_llm(prompt: str, video_path: Optional[str] = None) -> str:
     client = genai.Client(api_key=require_gemini_key())
     uploaded_file = None
 
+    # 1. Direct YouTube URL / remote video URI via Interactions API
+    if video_path and (video_path.startswith("http://") or video_path.startswith("https://")):
+        try:
+            print(f"[gemini/video-understanding] analyzing YouTube/video URL directly with {GEMINI_MODEL} via Interactions API...", flush=True)
+            interaction = client.interactions.create(
+                model=GEMINI_MODEL,
+                input=[
+                    {"type": "text", "text": prompt},
+                    {"type": "video", "uri": video_path},
+                ],
+            )
+            out_text = interaction.output_text or ""
+            if out_text.strip():
+                return out_text
+        except Exception as e:
+            print(f"[gemini/video-understanding] interactions API with direct URL failed ({e}), falling back...", flush=True)
+
+    # 2. Local file upload via Google AI Studio Files API
     contents = prompt
     if video_path and os.path.exists(video_path):
         try:

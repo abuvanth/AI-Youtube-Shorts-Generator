@@ -185,11 +185,13 @@ xargs -a urls.txt -I{} python main.py "{}"
 
 | Flag | Default | Notes |
 |------|---------|-------|
-| `--mode` | `api` | `api` (MuAPI, fast, no setup) or `local` (remote URL, `file://`, or local path + faster-whisper + LLM provider + ffmpeg) |
+| `--mode` | `local` | `local` (yt-dlp + ElevenLabs ASR + Gemini 4 Hydrogen + ffmpeg) or `api` (MuAPI) |
 | `--num-clips` | `3` | How many shorts to render |
-| `--aspect-ratio` | `9:16` | Any ratio; `9:16` for TikTok/Reels, `1:1` for square |
-| `--format` | `720` | Source download resolution: `360` / `480` / `720` / `1080` |
-| `--language` | auto | Force Whisper language code (e.g. `en`) |
+| `--target-duration` | `30` | Target duration per short in seconds (e.g. `30` for punchy 20-35s shorts) |
+| `--aspect-ratio` | `9:16` | Any ratio; `9:16` for TikTok/Reels/Shorts, `1:1` for square |
+| `--format` | `1080` | HD resolution for final cut shorts: `720` / `1080` |
+| `--analysis-format` | `360` | Low-res resolution for fast ASR & Gemini virality analysis: `360` / `480` |
+| `--language` | auto | Force Whisper/Scribe language code (e.g. `en`) |
 | `--output-json` | — | Dump the full result (transcript + all candidates) to a file |
 
 ### API mode vs Local mode
@@ -197,11 +199,11 @@ xargs -a urls.txt -I{} python main.py "{}"
 | Step | API mode (`--mode api`) | Local mode (`--mode local`) |
 |---|---|---|
 | Download | MuAPI `/youtube-download` | `yt-dlp` for remote URLs, direct file path for local inputs |
-| Transcription | MuAPI `/openai-whisper` | `faster-whisper` (CPU or CUDA) |
-| Highlight LLM | MuAPI `gpt-5-mini` | `LLM_PROVIDER=openai` uses OpenAI (`gpt-4o-mini` by default), `LLM_PROVIDER=gemini` uses Gemini (`gemini-2.5-flash` by default) |
-| Vertical crop | MuAPI `/autocrop` | `ffmpeg` + OpenCV face tracking |
-| Output | hosted URLs | local mp4 paths |
-| Required keys | `MUAPI_API_KEY` | `OPENAI_API_KEY` or `GEMINI_API_KEY` (+ `ffmpeg` on PATH) |
+| Transcription | MuAPI `/openai-whisper` | ElevenLabs Scribe API (`ASR_PROVIDER=elevenlabs`, default) or `faster-whisper` (offline CPU/CUDA) |
+| Highlight LLM | MuAPI `gpt-5-mini` | `LLM_PROVIDER=gemini` uses Gemini 4 Hydrogen (`gemini-4-hydrogen`, multimodal video understanding with direct YouTube URL ingestion via Interactions API), or `LLM_PROVIDER=openai` (`gpt-4o-mini`) |
+| Vertical crop | MuAPI `/autocrop` | `ffmpeg` direct crop + scale to Full HD (1080x1920) |
+| Output | hosted URLs | local mp4 paths (Full HD 1080p) |
+| Required keys | `MUAPI_API_KEY` | `GEMINI_API_KEY` + `ELEVENLABS_API_KEY` (or `OPENAI_API_KEY`) + `ffmpeg` on PATH |
 
 ## How It Works
 

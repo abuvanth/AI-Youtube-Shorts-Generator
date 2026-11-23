@@ -41,11 +41,12 @@ def crop_clip_local(
         f"'(iw-ow)/2':'(ih-oh)/2',{scale_target}"
     )
 
+    duration = max(1.0, end_time - start_time)
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
         "-ss", f"{start_time:.3f}",
-        "-to", f"{end_time:.3f}",
         "-i", source_path,
+        "-t", f"{duration:.3f}",
         "-vf", vf_filter,
         "-c:v", "libx264", "-preset", "fast", "-crf", "18",
         "-c:a", "aac", "-b:a", "192k",
