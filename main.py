@@ -23,13 +23,14 @@ def main() -> int:
     parser.add_argument("url", help="YouTube URL, file:// URL, or local file path")
     parser.add_argument(
         "--mode",
-        choices=["api", "local"],
-        default="api",
-        help="api (default, MuAPI) or local (remote URL, file://, or local path + faster-whisper + LLM provider + ffmpeg).",
+        choices=["local", "api"],
+        default="local",
+        help="local (default: yt-dlp + ElevenLabs ASR + Gemini 4 Hydrogen with video understanding + ffmpeg) or api (MuAPI).",
     )
     parser.add_argument("--num-clips", type=int, default=3, help="How many shorts to render (default: 3)")
     parser.add_argument("--aspect-ratio", default="9:16", help="Output aspect ratio (default: 9:16)")
-    parser.add_argument("--format", default="720", help="Source download resolution: 360 / 480 / 720 / 1080 (default: 720)")
+    parser.add_argument("--format", default="1080", help="HD resolution for final cut shorts: 720 / 1080 (default: 1080)")
+    parser.add_argument("--analysis-format", default="360", help="Low-res preview resolution for fast virality check & ASR: 360 / 480 (default: 360)")
     parser.add_argument("--language", default=None, help="Force Whisper language code, e.g. 'en' (default: auto-detect)")
     parser.add_argument("--output-json", default=None, help="Write the full result JSON to this path")
     args = parser.parse_args()
@@ -42,6 +43,7 @@ def main() -> int:
             download_format=args.format,
             language=args.language,
             mode=args.mode,
+            analysis_format=args.analysis_format,
         )
     except Exception as e:
         print(f"\nFAILED: {e}", file=sys.stderr)

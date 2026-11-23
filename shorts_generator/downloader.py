@@ -1,7 +1,8 @@
-"""YouTube source video download via MuAPI /youtube-download."""
-from typing import Dict
+"""YouTube source video download via yt-dlp (default) or MuAPI."""
+import os
+from typing import Dict, Optional
 
-from . import muapi
+from .local.downloader import download_youtube_local
 from .url_validation import validate_youtube_url
 
 
@@ -24,15 +25,24 @@ def _extract_video_url(result: Dict) -> str:
     raise RuntimeError(f"Could not find downloaded video URL in MuAPI response: {result}")
 
 
-def download_youtube(video_url: str, fmt: str = "720") -> str:
-    """Hand a YouTube URL to MuAPI; return a hosted mp4 URL we can read from."""
+def download_youtube_muapi(video_url: str, fmt: str = "720") -> str:
+    """Hand a YouTube URL to MuAPI; return a hosted mp4 URL."""
+    from . import muapi
     video_url = validate_youtube_url(video_url)
-    print(f"[download] requesting {video_url} @ {fmt}p", flush=True)
+    print(f"[download/muapi] requesting {video_url} @ {fmt}p", flush=True)
     result = muapi.run(
         "youtube-download",
         {"video_url": video_url, "format": fmt},
         label="youtube-download",
     )
     out = _extract_video_url(result)
-    print(f"[download] ready: {out}", flush=True)
+    print(f"[download/muapi] ready: {out}", flush=True)
     return out
+
+
+def download_youtube(video_url: str, fmt: str = "720", use_muapi: bool = False) -> str:
+    """Download YouTube video using yt-dlp by default, or MuAPI if requested."""
+    if use_muapi:
+        return download_youtube_muapi(video_url, fmt=fmt)
+    # Default to yt-dlp
+    return download_youtube_local(video_url, fmt=fmt)

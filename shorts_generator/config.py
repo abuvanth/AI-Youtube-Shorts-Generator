@@ -50,8 +50,14 @@ POLL_TIMEOUT_SECONDS = float(os.getenv("MUAPI_POLL_TIMEOUT", "600"))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").strip().lower()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-4-hydrogen")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
+
+# ElevenLabs ASR (Speech-to-Text) settings
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "").strip()
+ELEVENLABS_SCRIBE_MODEL = os.getenv("ELEVENLABS_SCRIBE_MODEL", "scribe_v1").strip()
+ASR_PROVIDER = os.getenv("ASR_PROVIDER", "elevenlabs").strip().lower()
+
 LOCAL_WHISPER_MODEL = os.getenv("LOCAL_WHISPER_MODEL", "base")
 LOCAL_WHISPER_DEVICE = os.getenv("LOCAL_WHISPER_DEVICE", "auto")  # auto / cpu / cuda
 LOCAL_OUTPUT_DIR = os.path.abspath(
@@ -126,10 +132,18 @@ def require_openai_key() -> str:
 
 
 def require_gemini_key() -> str:
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not set. Add it to your .env file or export it.")
+    if _PLACEHOLDER_KEY.fullmatch(GEMINI_API_KEY.strip()):
+        raise RuntimeError("GEMINI_API_KEY contains a placeholder value. Replace it with your real Gemini API key.")
+    if len(GEMINI_API_KEY) < 16:
+        raise RuntimeError("GEMINI_API_KEY looks too short to be a valid API key.")
+    return GEMINI_API_KEY
+
+
+def require_elevenlabs_key() -> str:
     return _require_key(
-        GEMINI_API_KEY,
-        "GEMINI_API_KEY",
-        "Local mode needs a Gemini key when LLM_PROVIDER=gemini. Add it to your .env or export it, "
-        "or switch LLM_PROVIDER back to openai.",
-        expected_prefix="AIza",
+        ELEVENLABS_API_KEY,
+        "ELEVENLABS_API_KEY",
+        "Add it to your .env file or export it as an environment variable.",
     )

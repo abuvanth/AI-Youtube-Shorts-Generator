@@ -5,9 +5,11 @@ shape expected by the highlight generator: {duration, segments[start,end,text]}.
 The API runs verbose_json server-side, so we get per-segment timestamps for free.
 """
 import json
+import os
 from typing import Dict, Optional
 
 from . import muapi
+from .config import ASR_PROVIDER, ELEVENLABS_API_KEY
 
 
 def _coerce_verbose(raw) -> Dict:
@@ -47,11 +49,11 @@ def _extract_verbose_payload(result: Dict) -> Dict:
 
 
 def transcribe(media_url: str, language: Optional[str] = None) -> Dict:
-    """Run MuAPI /openai-whisper on a hosted media URL.
+    """Run transcription using ElevenLabs ASR or MuAPI /openai-whisper."""
+    if os.path.exists(media_url) or (ASR_PROVIDER == "elevenlabs" and ELEVENLABS_API_KEY):
+        from .elevenlabs_asr import transcribe_elevenlabs
+        return transcribe_elevenlabs(media_url, language=language)
 
-    Returns {duration: float, segments: [{start, end, text}, ...]} so it slots
-    straight into the highlight generator.
-    """
     print(f"[transcribe] muapi /openai-whisper on {media_url}", flush=True)
     payload = {
         "audio_url": media_url,

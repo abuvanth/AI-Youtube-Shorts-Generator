@@ -8,14 +8,24 @@ import re
 from pathlib import Path
 from typing import Dict, Optional
 
-from ..config import LOCAL_OUTPUT_DIR, LOCAL_WHISPER_DEVICE, LOCAL_WHISPER_MODEL
+from ..config import (
+    ASR_PROVIDER,
+    ELEVENLABS_API_KEY,
+    LOCAL_OUTPUT_DIR,
+    LOCAL_WHISPER_DEVICE,
+    LOCAL_WHISPER_MODEL,
+)
 
 
 def _transcript_cache_path(media_path: str) -> Path:
-    """Return the .srt cache path for a media file."""
+    """Return the .srt cache path for a media file, normalizing resolution suffixes."""
     cache_dir = Path(LOCAL_OUTPUT_DIR)
     cache_dir.mkdir(parents=True, exist_ok=True)
-    return cache_dir / (Path(media_path).stem + ".srt")
+    raw_stem = Path(media_path).stem
+    if (cache_dir / f"{raw_stem}.srt").exists():
+        return cache_dir / f"{raw_stem}.srt"
+    base_stem = re.sub(r"_(?:360|480|720|1080|1440|2160)$", "", raw_stem)
+    return cache_dir / f"{base_stem}.srt"
 
 
 def _format_srt_timestamp(seconds: float) -> str:
@@ -96,7 +106,13 @@ def _resolve_device() -> str:
 
 
 def transcribe_local(media_path: str, language: Optional[str] = None) -> Dict:
-    """Run faster-whisper on a local file path, caching the result as .srt."""
+    """Transcribe a local media file using ElevenLabs ASR (default) or faster-whisper."""
+    # If ElevenLabs is selected or key is present and ASR_PROVIDER isn't explicitly whisper
+    provider = (ASR_PROVIDER or "").strip().lower()
+    if provider == "elevenlabs" or (not provider and ELEVENLABS_API_KEY):
+        from ..elevenlabs_asr import transcribe_elevenlabs
+        return transcribe_elevenlabs(media_path, language=language)
+
     cache_path = _transcript_cache_path(media_path)
     if cache_path.exists():
         source_mtime = os.path.getmtime(media_path)

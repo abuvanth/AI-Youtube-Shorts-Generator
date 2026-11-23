@@ -203,6 +203,14 @@ def chunk_transcript(transcript: Dict) -> List[Dict]:
     return chunks
 
 
+def _invoke_llm(llm_fn: LLMFn, prompt: str, video_path: Optional[str] = None) -> str:
+    """Invoke LLM callable, passing video_path if the backend supports multimodal video understanding."""
+    try:
+        return llm_fn(prompt, video_path=video_path)
+    except TypeError:
+        return llm_fn(prompt)
+
+
 def call_highlight_api(
     transcript_text: str,
     content_info: Dict,
@@ -210,6 +218,7 @@ def call_highlight_api(
     num_clips: int,
     is_chunk: bool = False,
     llm_fn: LLMFn = call_muapi_llm,
+    video_path: Optional[str] = None,
 ) -> Dict:
     # Ask for ~2× the user's target so dedupe has headroom, but cap so the model
     # doesn't have to generate a huge JSON payload (which times out gpt-5-mini).
@@ -233,7 +242,7 @@ def call_highlight_api(
     last_error = "unknown"
 
     for attempt in range(1, MAX_HIGHLIGHT_API_ATTEMPTS + 1):
-        raw = llm_fn(prompt)
+        raw = _invoke_llm(llm_fn, prompt, video_path=video_path)
         try:
             parsed = _parse_json_loose(raw)
             highlights = _sanitize_highlights(parsed.get("highlights"), duration=duration)
@@ -285,11 +294,13 @@ def get_highlights(
     transcript: Dict,
     num_clips: int = 3,
     llm_fn: Optional[LLMFn] = None,
+    video_path: Optional[str] = None,
 ) -> Dict:
     """Main entry point — returns {highlights: [...]} sorted by score.
 
     `llm_fn` swaps the underlying LLM. Defaults to MuAPI gpt-5-mini; local
-    mode passes in a local LLM-backed callable.
+    mode passes in a local LLM-backed callable (such as Gemini 4 Hydrogen).
+    `video_path` optionally passes the video file for multimodal video understanding.
     """
     llm_fn = llm_fn or call_muapi_llm
     duration = transcript.get("duration", 0)
@@ -304,7 +315,7 @@ def get_highlights(
             offset = chunk.get("_offset", 0)
             text = build_transcript_text(chunk)
             print(f"[highlights] chunk {i + 1}/{len(chunks)} (offset {offset:.0f}s)", flush=True)
-            result = call_highlight_api(text, content_info, chunk["duration"], num_clips=num_clips, is_chunk=True, llm_fn=llm_fn)
+            result = call_highlight_api(text, content_info, chunk["duration"], num_clips=num_clips, is_chunk=True, llm_fn=llm_fn, video_path=video_path)
             for h in result.get("highlights", []):
                 h["start_time"] = float(h["start_time"]) + offset
                 h["end_time"] = float(h["end_time"]) + offset
@@ -312,7 +323,7 @@ def get_highlights(
         highlights = dedupe_highlights(all_highlights)
     else:
         text = build_transcript_text(transcript)
-        result = call_highlight_api(text, content_info, duration, num_clips=num_clips, llm_fn=llm_fn)
+        result = call_highlight_api(text, content_info, duration, num_clips=num_clips, llm_fn=llm_fn, video_path=video_path)
         highlights = dedupe_highlights(result.get("highlights", []))
 
     return {"highlights": highlights}

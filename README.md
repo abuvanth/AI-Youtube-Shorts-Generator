@@ -91,18 +91,21 @@ Don't want to self-host? The [AI Clipping API](https://muapi.ai/playground/ai-cl
 
    Create a `.env` file in the project root:
    ```bash
-   # API mode (default)
-   MUAPI_API_KEY=your_muapi_key_here
+   # Default pipeline (Gemini + ElevenLabs ASR + yt-dlp)
+   LLM_PROVIDER=gemini
+   GEMINI_API_KEY=your_gemini_api_key_here
+   GEMINI_MODEL=gemini-4-hydrogen
 
-   # Local mode (--mode local)
-   LLM_PROVIDER=openai         # openai or gemini
+   ASR_PROVIDER=elevenlabs
+   ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
+   ELEVENLABS_SCRIBE_MODEL=scribe_v1
+
+   # Optional fallback providers
    OPENAI_API_KEY=your_openai_key_here
-   OPENAI_MODEL=gpt-4o-mini          # optional, default gpt-4o-mini
-   GEMINI_API_KEY=your_gemini_key_here
-   GEMINI_MODEL=gemini-2.5-flash      # optional, default gemini-2.5-flash
-   LOCAL_WHISPER_MODEL=base          # tiny / base / small / medium / large-v3
-   LOCAL_WHISPER_DEVICE=auto         # auto / cpu / cuda
-   LOCAL_OUTPUT_DIR=output           # where local mp4s land
+   OPENAI_MODEL=gpt-4o-mini
+   LOCAL_WHISPER_MODEL=base
+   LOCAL_WHISPER_DEVICE=auto
+   LOCAL_OUTPUT_DIR=output
    ```
 
 ## Usage
