@@ -6,3 +6,15 @@ venv/
 output/
 *.mp4
 .DS_Store
+
+# Rust
+/target/
+.cargo/rune/
+
+# Generated media
+*.mkv
+*.webm
+*.mp3
+*.srt
+*.wav
+!tests/fixtures/**
